@@ -960,12 +960,16 @@ static const char* accessField (const statementInfo *const st)
 	return result;
 }
 
+const char * getContextSeparator ()
+{
+	const char *sep = "::";
+	if (isLanguage (Lang_java) || isLanguage (Lang_csharp))
+		sep = ".";
+	return sep;
+}
 static void addContextSeparator (vString *const scope)
 {
-	if (isLanguage (Lang_c)  ||  isLanguage (Lang_cpp))
-		vStringCatS (scope, "::");
-	else if (isLanguage (Lang_java) || isLanguage (Lang_csharp))
-		vStringCatS (scope, ".");
+	vStringCatS (scope, getContextSeparator());
 }
 
 static void addOtherFields (tagEntryInfo* const tag, const tagType type,

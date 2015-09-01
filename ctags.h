@@ -15,13 +15,13 @@
 *   MACROS
 */
 #ifndef PROGRAM_VERSION
-# define PROGRAM_VERSION "Development"
+# define PROGRAM_VERSION "1.1"
 #endif
-#define PROGRAM_NAME      "Exuberant Ctags"
+#define PROGRAM_NAME      "Stags (branch of Exuberant Ctags 5.8)"
 #define PROGRAM_URL       "http://ctags.sourceforge.net"
 #define PROGRAM_COPYRIGHT "Copyright (C) 1996-2009"
-#define AUTHOR_NAME       "Darren Hiebert"
-#define AUTHOR_EMAIL      "dhiebert@users.sourceforge.net"
+#define AUTHOR_NAME       "Liang Jian (original by Darren Hiebert)"
+#define AUTHOR_EMAIL      "skyshore@gmail.com"
 
 #endif	/* _CTAGS_H */
 

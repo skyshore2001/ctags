@@ -364,7 +364,10 @@ static boolean createTagsFromFileInput (FILE *const fp, const boolean filter)
 		parseOptions (args);
 		while (! cArgOff (args))
 		{
-			resize |= createTagsForEntry (cArgItem (args));
+			const char *fileName = cArgItem (args);
+			if (strcmp(fileName, ".") == 0)
+				break;
+			resize |= createTagsForEntry (fileName);
 			if (filter)
 			{
 				if (Option.filterTerminator != NULL)

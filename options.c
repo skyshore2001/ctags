@@ -869,8 +869,11 @@ static void processFieldsOption (
 static void processFilterTerminatorOption (
 		const char *const option __unused__, const char *const parameter)
 {
+	char *p;
 	freeString (&Option.filterTerminator);
-	Option.filterTerminator = stringCopy (parameter);
+	p = xMalloc (strlen (parameter) + 2, char);
+	sprintf(p, "%s\n", parameter);
+	Option.filterTerminator = p;
 }
 
 static void processFormatOption (
@@ -880,7 +883,7 @@ static void processFormatOption (
 
 	if (sscanf (parameter, "%u", &format) < 1)
 		error (FATAL, "Invalid value for \"%s\" option",option);
-	else if (format <= (unsigned int) MaxSupportedTagFormat)
+	else if (format <= (unsigned int) MaxSupportedTagFormat || format == 99) // >>>> LJ: 99 for extension
 		Option.tagFileFormat = format;
 	else
 		error (FATAL, "Unsupported value for \"%s\" option", option);

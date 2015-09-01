@@ -385,7 +385,12 @@ extern void openTagFile (void)
 	/*  Open the tags file.
 	 */
 	if (TagsToStdout)
+	{
+		if (Option.sorted != SO_UNSORTED)
 		TagFile.fp = tempFile ("w", &TagFile.name);
+		else
+			TagFile.fp = stdout;
+	}
 	else
 	{
 		boolean fileExists;
@@ -523,6 +528,8 @@ extern void closeTagFile (const boolean resize)
 {
 	long desiredSize, size;
 
+	if (Option.sorted == SO_UNSORTED)
+		return;
 	if (Option.etags)
 		writeEtagsIncludes (TagFile.fp);
 	desiredSize = ftell (TagFile.fp);
@@ -639,19 +646,78 @@ static size_t writeCompactSourceLine (FILE *const fp, const char *const line)
 	return length;
 }
 
+const char * getContextSeparator ();
+static int writeXrefEntry_LJ (const tagEntryInfo *const tag)
+{
+	int length = 0;
+	if (tag->extensionFields.scope[1] != NULL)
+	{
+		length += fprintf (TagFile.fp, "%s%s", tag->extensionFields.scope[1], getContextSeparator());
+	}
+	length += fprintf (TagFile.fp, "%s\t%lu\t%s", tag->name, tag->lineNumber, tag->kindName);
+	const char *extra = tag->extensionFields.signature;
+	if (extra == NULL) {
+		if (tag->kind == 'd' || tag->kind == 'v') {
+			const char *line = readSourceLine (TagFile.vLine, tag->filePosition, NULL);
+			line = strstr(line, tag->name);
+			if (line)
+				line += strlen(tag->name);
+			extra = line;
+		}
+	}
+	if (extra) {
+		const char *p;
+#define	maxlen 120
+		char buf[maxlen+4] = "", *p1 = buf; // +4: for "..."
+		boolean space = TRUE;
+		for (p = extra; *p; ++p) {
+			char ch = *p;
+			if (isspace(*p)) {
+				if (space)
+					continue;
+				space = TRUE;
+				ch = ' ';
+			}
+			else 
+				space = FALSE;
+			*p1++ = ch;
+			if (p1 - buf >= maxlen)
+				break;
+		}
+		if (*p == 0) {
+			for (; p1>buf; --p1) {
+				char ch = *(p1-1);
+				if (! (ch == ';' || isspace(ch)))
+					break;
+			}
+			*p1 = 0;
+		}
+		else
+			strcpy(p1, "...");
+#undef maxlen
+		if (extra[0])
+			length += fprintf(TagFile.fp, "\t%s", buf);
+	}
+	putc (NEWLINE, TagFile.fp);
+	++length;
+	return length;
+}
 static int writeXrefEntry (const tagEntryInfo *const tag)
 {
-	const char *const line =
-			readSourceLine (TagFile.vLine, tag->filePosition, NULL);
+	const char *line;
 	int length;
 
+	if (Option.tagFileFormat == 99)
+		return writeXrefEntry_LJ(tag);
 	if (Option.tagFileFormat == 1)
 		length = fprintf (TagFile.fp, "%-16s %4lu %-16s ", tag->name,
 				tag->lineNumber, tag->sourceFileName);
-	else
+	else {
 		length = fprintf (TagFile.fp, "%-16s %-10s %4lu %-16s ", tag->name,
 				tag->kindName, tag->lineNumber, tag->sourceFileName);
+	}
 
+	line = readSourceLine (TagFile.vLine, tag->filePosition, NULL);
 	length += writeCompactSourceLine (TagFile.fp, line);
 	putc (NEWLINE, TagFile.fp);
 	++length;
