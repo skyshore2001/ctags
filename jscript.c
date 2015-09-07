@@ -309,8 +309,8 @@ static void makeFunctionTag (tokenInfo *const token)
 		if ( ! stringListHas(FunctionNames, vStringValue (fulltag)) )
 		{
 			stringListAdd (FunctionNames, vStringNewCopy (fulltag));
-			makeJsTag (token, JSTAG_FUNCTION);
 		}
+		makeJsTag (token, JSTAG_FUNCTION);
 		vStringDelete (fulltag);
 	}
 }
@@ -516,6 +516,14 @@ static void copyToken (tokenInfo *const dest, tokenInfo *const src)
 	vStringCopy(dest->scope, src->scope);
 }
 
+static void swapToken (tokenInfo *const a, tokenInfo *const b)
+{
+	tokenInfo *const tmp = newToken ();
+	copyToken(tmp, a);
+	copyToken(a, b);
+	copyToken(b, tmp);
+	deleteToken (tmp);
+}
 /*
  *	 Token parsing functions
  */
@@ -548,6 +556,11 @@ static void skipArgumentList (tokenInfo *const token)
 					nest_level--;
 				}
 			}
+			/* e.g. $("#xx").click(function () { ... });
+				e.g. $(function () {... });
+			*/
+			if (isType (token, TOKEN_KEYWORD) && token->keyword == KEYWORD_function)
+				parseFunction (token);
 		}
 		readToken (token);
 	}
@@ -602,6 +615,17 @@ static void addToScope (tokenInfo* const token, vString* const extra)
 		vStringCatS (token->scope, ".");
 	}
 	vStringCatS (token->scope, vStringValue(extra));
+	vStringTerminate(token->scope);
+}
+
+static void addParentToScope (tokenInfo* const token, tokenInfo* const parent)
+{
+	vStringCopy (token->scope, parent->scope);
+	if (vStringLength (parent->scope) > 0)
+	{
+		vStringCatS (token->scope, ".");
+	}
+	vStringCatS (token->scope, vStringValue(parent->string));
 	vStringTerminate(token->scope);
 }
 
@@ -849,6 +873,7 @@ static void parseFunction (tokenInfo *const token)
 {
 	tokenInfo *const name = newToken ();
 	boolean is_class = FALSE;
+	boolean is_noname = FALSE;
 
 	/*
 	 * This deals with these formats
@@ -856,10 +881,20 @@ static void parseFunction (tokenInfo *const token)
 	 */
 
 	readToken (name);
-	/* Add scope in case this is an INNER function */
-	addToScope(name, token->scope);
+	if ( isType (name, TOKEN_OPEN_PAREN) ) 
+	{
+		name->nestLevel = token->nestLevel;
+		swapToken (name, token);
+		is_noname = TRUE;
+	}
+	else
+	{
+		/* Add scope in case this is an INNER function */
+		addToScope(name, token->scope);
 
-	readToken (token);
+		readToken (token);
+	}
+
 	while (isType (token, TOKEN_PERIOD))
 	{
 		readToken (token);
@@ -876,10 +911,13 @@ static void parseFunction (tokenInfo *const token)
 	if ( isType (token, TOKEN_OPEN_CURLY) )
 	{
 		is_class = parseBlock (token, name);
-		if ( is_class )
-			makeClassTag (name);
-		else
-			makeFunctionTag (name);
+		if (! is_noname)
+		{
+			if ( is_class )
+				makeClassTag (name);
+			else
+				makeFunctionTag (name);
+		}
 	}
 
 	findCmdTerm (token);
@@ -919,7 +957,7 @@ static boolean parseBlock (tokenInfo *const token, tokenInfo *const parent)
 				 */
 				is_class = TRUE;
 				vStringCopy(saveScope, token->scope);
-				addToScope (token, parent->string);
+				addParentToScope (token, parent);
 
 				/*
 				 * Ignore the remainder of the line
@@ -936,14 +974,14 @@ static boolean parseBlock (tokenInfo *const token, tokenInfo *const parent)
 				 * Set something to indicate the scope
 				 */
 				vStringCopy(saveScope, token->scope);
-				addToScope (token, parent->string);
+				addParentToScope (token, parent);
 				parseLine (token, is_class);
 				vStringCopy(token->scope, saveScope);
 			}
 			else if (isKeyword (token, KEYWORD_function))
 			{
 				vStringCopy(saveScope, token->scope);
-				addToScope (token, parent->string);
+				addParentToScope (token, parent);
 				parseFunction (token);
 				vStringCopy(token->scope, saveScope);
 			}
@@ -1283,6 +1321,11 @@ static boolean parseStatement (tokenInfo *const token, boolean is_inside_class)
 		if ( isType (token, TOKEN_OPEN_SQUARE) )
 			skipArrayList(token);
 
+		/* e.g.
+		 (function() { ... }) ();
+		 */
+		if (isType (token, TOKEN_KEYWORD) && token->keyword == KEYWORD_function)
+			parseFunction (token);
 		/*
 		if ( isType (token, TOKEN_OPEN_CURLY) )
 		{
