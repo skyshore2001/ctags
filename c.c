@@ -962,9 +962,9 @@ static const char* accessField (const statementInfo *const st)
 
 const char * getContextSeparator ()
 {
-	const char *sep = "::";
-	if (isLanguage (Lang_java) || isLanguage (Lang_csharp))
-		sep = ".";
+	const char *sep = ".";
+	if (isLanguage (Lang_c) || isLanguage (Lang_cpp))
+		sep = "::";
 	return sep;
 }
 static void addContextSeparator (vString *const scope)

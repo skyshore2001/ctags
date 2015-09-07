@@ -13,6 +13,11 @@ Build
 Make on win32 (use mingw) or linux, then rename ctags/ctags.exe to stags/stags.exe.
 Then strip the exe to reduce the size.
 
+Release version (ctags.exe and stags.exe):
+	make -f mk_mingw.mak
+Debug version:
+	make -f mk_mingw.mak dctags.exe
+
 ====================================================================================
 
 2013-06  Liang Jian  <skyshore@gmail.com>
