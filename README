@@ -1,11 +1,11 @@
 # stags
 
-stags is a branch of ctags-5.8, special for program [symfind](https://github.com/skyshore2001/symfind)
-- a high performance and cross-platform code explorer.
+stags is a branch of ctags-5.8, special for program [symfind](https://github.com/skyshore2001/symfind),
+that is a high performance and cross-platform code explorer.
 
     stags -x -u --format=99 *.c
 
-Format=99 is stags-specific, and '-u' is optimized.
+Format=99 is stags-specific, and some features are optimized to generate symbol repo faster (e.g. '-u' for no-sort).
 
 ## Build
 
